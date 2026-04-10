@@ -1,0 +1,4 @@
+.env.dev.local
+.env.prod.local
+node_modules/
+.idea/

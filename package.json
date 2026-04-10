@@ -1,0 +1,21 @@
+{
+  "name": "toastit-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Toastit public API",
+  "type": "module",
+  "main": "src/index.mjs",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "start:stdio": "MCP_TRANSPORT=stdio node src/index.mjs",
+    "start:http": "MCP_TRANSPORT=http node src/index.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "toastit"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "zod": "^4.1.12"
+  }
+}
