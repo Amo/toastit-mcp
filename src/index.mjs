@@ -90,7 +90,7 @@ const toResult = (data) => ({
 const buildServer = () => {
   const server = new McpServer({
     name: 'toastit-public-api',
-    version: '0.2.0'
+    version: '0.3.0'
   });
 
   server.registerTool(
@@ -103,12 +103,116 @@ const buildServer = () => {
   );
 
   server.registerTool(
+    'create_workspace',
+    {
+      description: 'Create a workspace accessible to the authenticated user.',
+      inputSchema: {
+        name: z.string().min(1)
+      }
+    },
+    async ({ name }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: '/workspaces',
+      body: { name }
+    }))
+  );
+
+  server.registerTool(
+    'update_workspace_name',
+    {
+      description: 'Update workspace name.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        name: z.string().min(1)
+      }
+    },
+    async ({ workspace_id, name }) => toResult(await toastitRequest({
+      method: 'PATCH',
+      path: `/workspaces/${workspace_id}/name`,
+      body: { name }
+    }))
+  );
+
+  server.registerTool(
+    'delete_workspace',
+    {
+      description: 'Delete a workspace.',
+      inputSchema: {
+        workspace_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id }) => toResult(await toastitRequest({
+      method: 'DELETE',
+      path: `/workspaces/${workspace_id}`
+    }))
+  );
+
+  server.registerTool(
+    'list_workspace_members',
+    {
+      description: 'List members of a workspace.',
+      inputSchema: {
+        workspace_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id }) => toResult(await toastitRequest({
+      method: 'GET',
+      path: `/workspaces/${workspace_id}/members`
+    }))
+  );
+
+  server.registerTool(
+    'invite_workspace_member',
+    {
+      description: 'Invite a member to a workspace.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        email: z.string().email()
+      }
+    },
+    async ({ workspace_id, email }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/workspaces/${workspace_id}/members`,
+      body: { email }
+    }))
+  );
+
+  server.registerTool(
+    'remove_workspace_member',
+    {
+      description: 'Remove a member from a workspace.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        member_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id, member_id }) => toResult(await toastitRequest({
+      method: 'DELETE',
+      path: `/workspaces/${workspace_id}/members/${member_id}`
+    }))
+  );
+
+  server.registerTool(
+    'list_workspace_notes',
+    {
+      description: 'List notes for a workspace.',
+      inputSchema: {
+        workspace_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id }) => toResult(await toastitRequest({
+      method: 'GET',
+      path: `/workspaces/${workspace_id}/notes`
+    }))
+  );
+
+  server.registerTool(
     'list_workspace_toasts',
     {
       description: 'List toasts for a workspace with status filter and pagination.',
       inputSchema: {
         workspace_id: z.number().int().positive(),
-        status: z.enum(['all', 'new', 'treated', 'vetoed']).optional(),
+        status: z.enum(['all', 'new', 'ready', 'treated', 'vetoed']).optional(),
         page: z.number().int().min(1).optional(),
         per_page: z.number().int().min(1).max(100).optional()
       }
@@ -120,6 +224,28 @@ const buildServer = () => {
         status,
         page,
         perPage: per_page
+      }
+    }))
+  );
+
+  server.registerTool(
+    'create_note',
+    {
+      description: 'Create a note in a workspace.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        title: z.string().min(1),
+        body: z.string().optional(),
+        is_important: z.boolean().optional()
+      }
+    },
+    async ({ workspace_id, title, body, is_important }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/workspaces/${workspace_id}/notes`,
+      body: {
+        title,
+        ...(body !== undefined ? { body } : {}),
+        ...(is_important !== undefined ? { isImportant: is_important } : {})
       }
     }))
   );
@@ -144,6 +270,29 @@ const buildServer = () => {
         ...(description !== undefined ? { description } : {}),
         ...(assignee_email !== undefined ? { assigneeEmail: assignee_email } : {}),
         ...(due_on !== undefined ? { dueOn: due_on } : {})
+      }
+    }))
+  );
+
+  server.registerTool(
+    'update_note',
+    {
+      description: 'Update an existing note in a workspace.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        note_id: z.number().int().positive(),
+        title: z.string().min(1),
+        body: z.string().optional(),
+        is_important: z.boolean().optional()
+      }
+    },
+    async ({ workspace_id, note_id, title, body, is_important }) => toResult(await toastitRequest({
+      method: 'PUT',
+      path: `/workspaces/${workspace_id}/notes/${note_id}`,
+      body: {
+        title,
+        ...(body !== undefined ? { body } : {}),
+        ...(is_important !== undefined ? { isImportant: is_important } : {})
       }
     }))
   );
@@ -177,6 +326,68 @@ const buildServer = () => {
       method: 'PATCH',
       path: `/toasts/${toast_id}/description`,
       body: { description }
+    }))
+  );
+
+  server.registerTool(
+    'get_toast',
+    {
+      description: 'Get one toast by id.',
+      inputSchema: {
+        toast_id: z.number().int().positive()
+      }
+    },
+    async ({ toast_id }) => toResult(await toastitRequest({
+      method: 'GET',
+      path: `/toasts/${toast_id}`
+    }))
+  );
+
+  server.registerTool(
+    'update_toast_title',
+    {
+      description: 'Update toast title.',
+      inputSchema: {
+        toast_id: z.number().int().positive(),
+        title: z.string().min(1)
+      }
+    },
+    async ({ toast_id, title }) => toResult(await toastitRequest({
+      method: 'PATCH',
+      path: `/toasts/${toast_id}/title`,
+      body: { title }
+    }))
+  );
+
+  server.registerTool(
+    'update_toast_status',
+    {
+      description: 'Update toast public status (new, treated, vetoed).',
+      inputSchema: {
+        toast_id: z.number().int().positive(),
+        status: z.enum(['new', 'ready', 'treated', 'vetoed'])
+      }
+    },
+    async ({ toast_id, status }) => toResult(await toastitRequest({
+      method: 'PATCH',
+      path: `/toasts/${toast_id}/status`,
+      body: { status }
+    }))
+  );
+
+  server.registerTool(
+    'transfer_toast',
+    {
+      description: 'Transfer a toast to another workspace.',
+      inputSchema: {
+        toast_id: z.number().int().positive(),
+        workspace_id: z.number().int().positive()
+      }
+    },
+    async ({ toast_id, workspace_id }) => toResult(await toastitRequest({
+      method: 'PATCH',
+      path: `/toasts/${toast_id}/workspace`,
+      body: { workspaceId: workspace_id }
     }))
   );
 

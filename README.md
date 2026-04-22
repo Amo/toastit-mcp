@@ -13,8 +13,21 @@ MCP server exposing the full Toastit public API toolset.
 ## Exposed tools (full scope)
 
 - `list_workspaces`
+- `create_workspace`
+- `update_workspace_name`
+- `delete_workspace`
+- `list_workspace_members`
+- `invite_workspace_member`
+- `remove_workspace_member`
+- `list_workspace_notes`
 - `list_workspace_toasts`
+- `create_note`
 - `create_toast`
+- `update_note`
+- `get_toast`
+- `update_toast_title`
+- `update_toast_status`
+- `transfer_toast`
 - `update_toast_assignee`
 - `update_toast_description`
 - `update_toast_due_date`
@@ -25,8 +38,21 @@ MCP server exposing the full Toastit public API toolset.
 
 These map to:
 - `GET /workspaces`
+- `POST /workspaces`
+- `PATCH /workspaces/{id}/name`
+- `DELETE /workspaces/{id}`
+- `GET /workspaces/{id}/members`
+- `POST /workspaces/{id}/members`
+- `DELETE /workspaces/{id}/members/{memberId}`
+- `GET /workspaces/{id}/notes`
 - `GET /workspaces/{id}/toasts`
+- `POST /workspaces/{id}/notes`
 - `POST /workspaces/{id}/toasts`
+- `PUT /workspaces/{id}/notes/{noteId}`
+- `GET /toasts/{id}`
+- `PATCH /toasts/{id}/title`
+- `PATCH /toasts/{id}/status`
+- `PATCH /toasts/{id}/workspace`
 - `PATCH /toasts/{id}/assignee`
 - `PATCH /toasts/{id}/description`
 - `PATCH /toasts/{id}/due-date`
@@ -115,5 +141,7 @@ docker run --rm -p 3001:3001 \
 ## Notes
 
 - Pagination fields returned by Toastit (including `pagination.nextPageUrl`) are passed through as-is.
+- Toast status filters support `all|new|ready|treated|vetoed`.
+- `update_toast_status` supports `new`, `ready`, `treated`, and `vetoed`.
 - API errors are surfaced as MCP tool errors with HTTP status and returned payload when available.
 - Transport is selectable through `MCP_TRANSPORT=stdio|http`.
