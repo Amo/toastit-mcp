@@ -474,6 +474,23 @@ const buildServer = (pat) => {
   );
 
   server.registerTool(
+    'update_toast_comment',
+    {
+      description: 'Update an existing comment on a toast.',
+      inputSchema: {
+        toast_id: z.number().int().positive(),
+        comment_id: z.number().int().positive(),
+        content: z.string().min(1)
+      }
+    },
+    async ({ toast_id, comment_id, content }) => toResult(await toastitRequest({
+      method: 'PATCH',
+      path: `/toasts/${toast_id}/comments/${comment_id}`,
+      body: { content }
+    }))
+  );
+
+  server.registerTool(
     'set_toast_boost',
     {
       description: 'Set boost state on a toast.',

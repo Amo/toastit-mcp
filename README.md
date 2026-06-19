@@ -33,6 +33,7 @@ MCP server exposing the full Toastit public API toolset.
 - `update_toast_due_date`
 - `list_toast_comments`
 - `create_toast_comment`
+- `update_toast_comment`
 - `set_toast_boost`
 - `set_toast_vote`
 
@@ -58,6 +59,7 @@ These map to:
 - `PATCH /toasts/{id}/due-date`
 - `GET /toasts/{id}/comments`
 - `POST /toasts/{id}/comments`
+- `PATCH /toasts/{id}/comments/{commentId}`
 - `PUT /toasts/{id}/boost`
 - `PUT /toasts/{id}/vote`
 
