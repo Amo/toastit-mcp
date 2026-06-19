@@ -14,7 +14,6 @@ install:
 dev:
 	@[ -f .env.dev.local ] || (echo "Missing .env.dev.local"; exit 1)
 	@set -a; . ./.env.dev.local; set +a; \
-	[ -n "$$MCP_TOASTIT_PAT" ] || (echo "Missing MCP_TOASTIT_PAT in .env.dev.local"; exit 1); \
 	MCP_TRANSPORT=http \
 	MCP_HTTP_HOST=$(MCP_HTTP_HOST) \
 	MCP_HTTP_PORT=$${MCP_HTTP_PORT:-$(MCP_HTTP_PORT)} \
@@ -27,7 +26,6 @@ dev:
 prod:
 	@[ -f .env.prod.local ] || (echo "Missing .env.prod.local"; exit 1)
 	@set -a; . ./.env.prod.local; set +a; \
-	[ -n "$$MCP_TOASTIT_PAT" ] || (echo "Missing MCP_TOASTIT_PAT in .env.prod.local"; exit 1); \
 	MCP_TRANSPORT=http \
 	MCP_HTTP_HOST=$(MCP_HTTP_HOST) \
 	MCP_HTTP_PORT=$${MCP_HTTP_PORT:-$(MCP_HTTP_PORT)} \

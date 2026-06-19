@@ -6,17 +6,28 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import * as z from 'zod/v4';
 
 const BASE_URL = (process.env.MCP_TOASTIT_BASE_URL || 'https://api.toastit.cc').replace(/\/$/, '');
-const PAT = (process.env.MCP_TOASTIT_PAT || '').trim();
+const ENV_PAT = (process.env.MCP_TOASTIT_PAT || '').trim();
 const API_ACCEPT = process.env.MCP_TOASTIT_ACCEPT || 'application/vnd.toastit.public+json; version=1';
 const TIMEOUT_MS = Number.parseInt(process.env.MCP_TOASTIT_TIMEOUT_MS || '10000', 10);
 const TRANSPORT = (process.env.MCP_TRANSPORT || 'stdio').trim().toLowerCase();
 const HTTP_HOST = process.env.MCP_HTTP_HOST || '0.0.0.0';
 const HTTP_PORT = Number.parseInt(process.env.MCP_HTTP_PORT || '3001', 10);
 
-const requiredEnvError = () => {
-  if (!PAT) {
-    throw new Error('Missing MCP_TOASTIT_PAT environment variable.');
+const extractBearerPat = (authorizationHeader) => {
+  if (!authorizationHeader || typeof authorizationHeader !== 'string') {
+    return '';
   }
+
+  const match = authorizationHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : '';
+};
+
+const resolvePat = ({ requestPat = '' } = {}) => (requestPat || ENV_PAT).trim();
+
+const missingPatError = () => {
+  throw new Error(
+    'Missing Toastit PAT. Provide Authorization: Bearer <pat> on HTTP requests, or MCP_TOASTIT_PAT for stdio mode.'
+  );
 };
 
 const parseBody = async (response) => {
@@ -49,8 +60,10 @@ const buildUrl = (path, query = undefined) => {
   return url.toString();
 };
 
-const toastitRequest = async ({ method, path, query, body }) => {
-  requiredEnvError();
+const createToastitRequest = (pat) => async ({ method, path, query, body }) => {
+  if (!pat) {
+    missingPatError();
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -60,7 +73,7 @@ const toastitRequest = async ({ method, path, query, body }) => {
       method,
       headers: {
         Accept: API_ACCEPT,
-        Authorization: `Bearer ${PAT}`,
+        Authorization: `Bearer ${pat}`,
         ...(body ? { 'Content-Type': 'application/json' } : {})
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -87,10 +100,11 @@ const toResult = (data) => ({
   structuredContent: data
 });
 
-const buildServer = () => {
+const buildServer = (pat) => {
+  const toastitRequest = createToastitRequest(pat);
   const server = new McpServer({
     name: 'toastit-public-api',
-    version: '0.3.0'
+    version: '0.4.0'
   });
 
   server.registerTool(
@@ -479,7 +493,12 @@ const buildServer = () => {
 };
 
 const runStdio = async () => {
-  const server = buildServer();
+  const pat = resolvePat();
+  if (!pat) {
+    throw new Error('Missing MCP_TOASTIT_PAT environment variable.');
+  }
+
+  const server = buildServer(pat);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 };
@@ -492,7 +511,16 @@ const runHttp = async () => {
   });
 
   app.post('/mcp', async (req, res) => {
-    const server = buildServer();
+    const pat = resolvePat({ requestPat: extractBearerPat(req.headers.authorization) });
+    if (!pat) {
+      res.status(401).json({
+        error: 'unauthorized',
+        message: 'Missing Toastit PAT. Send Authorization: Bearer <pat>.'
+      });
+      return;
+    }
+
+    const server = buildServer(pat);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined
     });

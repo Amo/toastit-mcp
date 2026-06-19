@@ -64,7 +64,13 @@ These map to:
 ## Requirements
 
 - Node.js 18+
-- Toastit PAT token (`tpat_...`)
+- Toastit personal access token (`toastit_<selector>_<secret>`)
+
+## Authentication
+
+- `stdio` mode: each user provides their PAT through `MCP_TOASTIT_PAT` in the MCP client config.
+- `http` mode: each user provides their PAT on every MCP request with `Authorization: Bearer <pat>`.
+- `MCP_TOASTIT_PAT` remains supported as an optional HTTP fallback for local testing, but shared production servers should rely on per-request bearer tokens.
 
 ## Setup
 
@@ -77,20 +83,20 @@ npm install
 Environment variables:
 
 - `MCP_TOASTIT_BASE_URL` (default: `https://api.toastit.cc`)
-- `MCP_TOASTIT_PAT` (required)
+- `MCP_TOASTIT_PAT` (required for `stdio`; optional HTTP fallback)
 - `MCP_TOASTIT_ACCEPT` (default: `application/vnd.toastit.public+json; version=1`)
 - `MCP_TOASTIT_TIMEOUT_MS` (default: `10000`)
 
 ## Run
 
 ```bash
-MCP_TOASTIT_PAT='tpat_xxx' npm start
+MCP_TOASTIT_PAT='toastit_xxx_yyy' npm start
 ```
 
 HTTP mode:
 
 ```bash
-MCP_TRANSPORT=http MCP_HTTP_PORT=3001 MCP_TOASTIT_PAT='tpat_xxx' npm run start:http
+MCP_TRANSPORT=http MCP_HTTP_PORT=3001 npm run start:http
 ```
 
 Makefile shortcuts:
@@ -109,6 +115,8 @@ make prod
 
 ## Example MCP client config
 
+Stdio:
+
 ```json
 {
   "mcpServers": {
@@ -117,8 +125,23 @@ make prod
       "args": ["/Users/amaury/code/toastit-mcp/src/index.mjs"],
       "env": {
         "MCP_TOASTIT_BASE_URL": "https://api.toastit.cc",
-        "MCP_TOASTIT_PAT": "tpat_xxx",
+        "MCP_TOASTIT_PAT": "toastit_xxx_yyy",
         "MCP_TOASTIT_ACCEPT": "application/vnd.toastit.public+json; version=1"
+      }
+    }
+  }
+}
+```
+
+Streamable HTTP:
+
+```json
+{
+  "mcpServers": {
+    "toastit": {
+      "url": "https://mcp.toastit.cc/mcp",
+      "headers": {
+        "Authorization": "Bearer toastit_xxx_yyy"
       }
     }
   }
@@ -134,8 +157,16 @@ docker build -t toastit-mcp:local .
 docker run --rm -p 3001:3001 \
   -e MCP_TRANSPORT=http \
   -e MCP_TOASTIT_BASE_URL=https://api.toastit.cc \
-  -e MCP_TOASTIT_PAT='tpat_xxx' \
   toastit-mcp:local
+```
+
+Call the server with your own PAT:
+
+```bash
+curl -X POST http://localhost:3001/mcp \
+  -H 'Authorization: Bearer toastit_xxx_yyy' \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"0.1.0"}}}'
 ```
 
 ## Notes
