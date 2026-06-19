@@ -13,6 +13,22 @@ const TRANSPORT = (process.env.MCP_TRANSPORT || 'stdio').trim().toLowerCase();
 const HTTP_HOST = process.env.MCP_HTTP_HOST || '0.0.0.0';
 const HTTP_PORT = Number.parseInt(process.env.MCP_HTTP_PORT || '3001', 10);
 
+const TOAST_STATUS_ALIASES = {
+  treated: 'toasted',
+  vetoed: 'discarded',
+};
+
+const normalizeToastStatus = (status) => {
+  if (!status || status === 'all') {
+    return status;
+  }
+
+  return TOAST_STATUS_ALIASES[status] ?? status;
+};
+
+const TOAST_STATUS_FILTER = z.enum(['all', 'new', 'ready', 'treated', 'vetoed', 'toasted', 'discarded']);
+const TOAST_STATUS_UPDATE = z.enum(['new', 'ready', 'treated', 'vetoed', 'toasted', 'discarded']);
+
 const extractBearerPat = (authorizationHeader) => {
   if (!authorizationHeader || typeof authorizationHeader !== 'string') {
     return '';
@@ -226,7 +242,7 @@ const buildServer = (pat) => {
       description: 'List toasts for a workspace with status filter and pagination.',
       inputSchema: {
         workspace_id: z.number().int().positive(),
-        status: z.enum(['all', 'new', 'ready', 'treated', 'vetoed']).optional(),
+        status: TOAST_STATUS_FILTER.optional(),
         page: z.number().int().min(1).optional(),
         per_page: z.number().int().min(1).max(100).optional()
       }
@@ -235,7 +251,7 @@ const buildServer = (pat) => {
       method: 'GET',
       path: `/workspaces/${workspace_id}/toasts`,
       query: {
-        status,
+        status: normalizeToastStatus(status),
         page,
         perPage: per_page
       }
@@ -376,16 +392,16 @@ const buildServer = (pat) => {
   server.registerTool(
     'update_toast_status',
     {
-      description: 'Update toast public status (new, treated, vetoed).',
+      description: 'Update toast public status (new, ready, toasted, discarded). Legacy aliases treated and vetoed are accepted.',
       inputSchema: {
         toast_id: z.number().int().positive(),
-        status: z.enum(['new', 'ready', 'treated', 'vetoed'])
+        status: TOAST_STATUS_UPDATE
       }
     },
     async ({ toast_id, status }) => toResult(await toastitRequest({
       method: 'PATCH',
       path: `/toasts/${toast_id}/status`,
-      body: { status }
+      body: { status: normalizeToastStatus(status) }
     }))
   );
 

@@ -172,7 +172,7 @@ curl -X POST http://localhost:3001/mcp \
 ## Notes
 
 - Pagination fields returned by Toastit (including `pagination.nextPageUrl`) are passed through as-is.
-- Toast status filters support `all|new|ready|treated|vetoed`.
-- `update_toast_status` supports `new`, `ready`, `treated`, and `vetoed`.
+- Toast status filters support `all|new|ready|toasted|discarded`. Legacy aliases `treated` and `vetoed` are accepted and mapped to the API values.
+- `update_toast_status` supports `new`, `ready`, `toasted`, and `discarded` (legacy aliases `treated` and `vetoed` accepted).
 - API errors are surfaced as MCP tool errors with HTTP status and returned payload when available.
 - Transport is selectable through `MCP_TRANSPORT=stdio|http`.
