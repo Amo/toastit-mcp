@@ -31,6 +31,13 @@ const protectedResourceMetadata = () => ({
   bearer_methods_supported: ['header'],
 });
 
+const unauthorizedChallengeHeader = () => {
+  const metadataUrl = protectedResourceMetadataUrl();
+  const scopeHint = MCP_SCOPES_SUPPORTED.join(' ');
+
+  return `Bearer realm="toastit-mcp", resource_metadata="${metadataUrl}", scope="${scopeHint}"`;
+};
+
 const TOAST_STATUS_ALIASES = {
   treated: 'toasted',
   vetoed: 'discarded',
@@ -568,9 +575,10 @@ const runHttp = async () => {
   app.post('/mcp', async (req, res) => {
     const pat = resolvePat({ requestPat: extractBearerPat(req.headers.authorization) });
     if (!pat) {
+      res.setHeader('WWW-Authenticate', unauthorizedChallengeHeader());
       res.status(401).json({
         error: 'unauthorized',
-        message: 'Missing Toastit PAT. Send Authorization: Bearer <pat>.'
+        message: 'Missing bearer token. Complete OAuth sign-in or send Authorization: Bearer <token>.'
       });
       return;
     }
