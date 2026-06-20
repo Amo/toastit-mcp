@@ -54,7 +54,9 @@ const normalizeToastStatus = (status) => {
 const TOAST_STATUS_FILTER = z.enum(['all', 'new', 'ready', 'treated', 'vetoed', 'toasted', 'discarded']);
 const TOAST_STATUS_UPDATE = z.enum(['new', 'ready', 'treated', 'vetoed', 'toasted', 'discarded']);
 
-const extractBearerPat = (authorizationHeader) => {
+const PERSONAL_ACCESS_TOKEN_PREFIX = 'toastit_';
+
+const extractBearerToken = (authorizationHeader) => {
   if (!authorizationHeader || typeof authorizationHeader !== 'string') {
     return '';
   }
@@ -63,11 +65,13 @@ const extractBearerPat = (authorizationHeader) => {
   return match ? match[1].trim() : '';
 };
 
-const resolvePat = ({ requestPat = '' } = {}) => (requestPat || ENV_PAT).trim();
+const isPersonalAccessToken = (token) => token.startsWith(PERSONAL_ACCESS_TOKEN_PREFIX);
 
-const missingPatError = () => {
+const resolveBearerToken = ({ requestToken = '' } = {}) => (requestToken || ENV_PAT).trim();
+
+const missingBearerTokenError = () => {
   throw new Error(
-    'Missing Toastit PAT. Provide Authorization: Bearer <pat> on HTTP requests, or MCP_TOASTIT_PAT for stdio mode.'
+    'Missing bearer token. Provide Authorization: Bearer <token> on HTTP requests, or MCP_TOASTIT_PAT for stdio mode.'
   );
 };
 
@@ -101,9 +105,9 @@ const buildUrl = (path, query = undefined) => {
   return url.toString();
 };
 
-const createToastitRequest = (pat) => async ({ method, path, query, body }) => {
-  if (!pat) {
-    missingPatError();
+const createToastitRequest = (bearerToken) => async ({ method, path, query, body }) => {
+  if (!bearerToken) {
+    missingBearerTokenError();
   }
 
   const controller = new AbortController();
@@ -114,7 +118,7 @@ const createToastitRequest = (pat) => async ({ method, path, query, body }) => {
       method,
       headers: {
         Accept: API_ACCEPT,
-        Authorization: `Bearer ${pat}`,
+        Authorization: `Bearer ${bearerToken}`,
         ...(body ? { 'Content-Type': 'application/json' } : {})
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -141,8 +145,8 @@ const toResult = (data) => ({
   structuredContent: data
 });
 
-const buildServer = (pat) => {
-  const toastitRequest = createToastitRequest(pat);
+const buildServer = (bearerToken) => {
+  const toastitRequest = createToastitRequest(bearerToken);
   const server = new McpServer({
     name: 'toastit-public-api',
     version: '0.4.0'
@@ -551,12 +555,12 @@ const buildServer = (pat) => {
 };
 
 const runStdio = async () => {
-  const pat = resolvePat();
-  if (!pat) {
+  const bearerToken = resolveBearerToken();
+  if (!bearerToken) {
     throw new Error('Missing MCP_TOASTIT_PAT environment variable.');
   }
 
-  const server = buildServer(pat);
+  const server = buildServer(bearerToken);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 };
@@ -573,8 +577,8 @@ const runHttp = async () => {
   });
 
   app.post('/mcp', async (req, res) => {
-    const pat = resolvePat({ requestPat: extractBearerPat(req.headers.authorization) });
-    if (!pat) {
+    const bearerToken = resolveBearerToken({ requestToken: extractBearerToken(req.headers.authorization) });
+    if (!bearerToken) {
       res.setHeader('WWW-Authenticate', unauthorizedChallengeHeader());
       res.status(401).json({
         error: 'unauthorized',
@@ -583,7 +587,7 @@ const runHttp = async () => {
       return;
     }
 
-    const server = buildServer(pat);
+    const server = buildServer(bearerToken);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined
     });
