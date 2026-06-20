@@ -12,6 +12,24 @@ const TIMEOUT_MS = Number.parseInt(process.env.MCP_TOASTIT_TIMEOUT_MS || '10000'
 const TRANSPORT = (process.env.MCP_TRANSPORT || 'stdio').trim().toLowerCase();
 const HTTP_HOST = process.env.MCP_HTTP_HOST || '0.0.0.0';
 const HTTP_PORT = Number.parseInt(process.env.MCP_HTTP_PORT || '3001', 10);
+const MCP_RESOURCE_URI = (process.env.MCP_RESOURCE_URI || 'https://mcp.toastit.cc/mcp').replace(/\/$/, '');
+const MCP_AUTHORIZATION_SERVER = (process.env.MCP_AUTHORIZATION_SERVER || 'https://toastit.cc').replace(/\/$/, '');
+const MCP_SCOPES_SUPPORTED = (process.env.MCP_SCOPES_SUPPORTED || 'mcp:tools')
+  .split(',')
+  .map((scope) => scope.trim())
+  .filter((scope) => scope.length > 0);
+
+const protectedResourceMetadataUrl = () => {
+  const resource = new URL(MCP_RESOURCE_URI);
+  return `${resource.origin}/.well-known/oauth-protected-resource`;
+};
+
+const protectedResourceMetadata = () => ({
+  resource: MCP_RESOURCE_URI,
+  authorization_servers: [MCP_AUTHORIZATION_SERVER],
+  scopes_supported: MCP_SCOPES_SUPPORTED,
+  bearer_methods_supported: ['header'],
+});
 
 const TOAST_STATUS_ALIASES = {
   treated: 'toasted',
@@ -541,6 +559,10 @@ const runHttp = async () => {
 
   app.get('/healthz', (_req, res) => {
     res.status(200).json({ ok: true, transport: 'http' });
+  });
+
+  app.get('/.well-known/oauth-protected-resource', (_req, res) => {
+    res.status(200).json(protectedResourceMetadata());
   });
 
   app.post('/mcp', async (req, res) => {
