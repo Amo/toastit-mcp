@@ -70,9 +70,25 @@ These map to:
 
 ## Authentication
 
+### OAuth (Grok.com and other MCP hosts)
+
+Production HTTP mode supports OAuth bearer tokens issued by Toastit (`tto_...`).
+
+1. Add `https://mcp.toastit.cc/mcp` as a custom MCP connector in Grok.
+2. Grok discovers OAuth metadata from the MCP server and opens a Toastit sign-in (email + PIN + consent).
+3. Grok stores the access token and sends it on each MCP request.
+
+Environment variables for metadata (local example):
+
+- `MCP_RESOURCE_URI=http://mcp.toastit.test:3001/mcp`
+- `MCP_AUTHORIZATION_SERVER=http://toastit.test`
+- `MCP_SCOPES_SUPPORTED=mcp:tools`
+
+### Personal access tokens (manual / local)
+
 - `stdio` mode: each user provides their PAT through `MCP_TOASTIT_PAT` in the MCP client config.
-- `http` mode: each user provides their PAT on every MCP request with `Authorization: Bearer <pat>`.
-- `MCP_TOASTIT_PAT` remains supported as an optional HTTP fallback for local testing, but shared production servers should rely on per-request bearer tokens.
+- `http` mode: each user can send `Authorization: Bearer toastit_<pat>` on every MCP request.
+- `MCP_TOASTIT_PAT` remains supported as an optional HTTP fallback for local testing.
 
 ## Setup
 
