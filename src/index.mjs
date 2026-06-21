@@ -149,8 +149,26 @@ const buildServer = (bearerToken) => {
   const toastitRequest = createToastitRequest(bearerToken);
   const server = new McpServer({
     name: 'toastit-public-api',
-    version: '0.4.0'
+    version: '0.5.0'
   });
+
+  server.registerTool(
+    'get_dashboard',
+    {
+      description: 'Get the authenticated user dashboard: assigned toasts summary and workspace overview.',
+      inputSchema: {}
+    },
+    async () => toResult(await toastitRequest({ method: 'GET', path: '/dashboard' }))
+  );
+
+  server.registerTool(
+    'list_my_actions',
+    {
+      description: 'List toasts assigned to the authenticated user across all workspaces.',
+      inputSchema: {}
+    },
+    async () => toResult(await toastitRequest({ method: 'GET', path: '/my-actions' }))
+  );
 
   server.registerTool(
     'list_workspaces',
@@ -173,6 +191,20 @@ const buildServer = (bearerToken) => {
       method: 'POST',
       path: '/workspaces',
       body: { name }
+    }))
+  );
+
+  server.registerTool(
+    'get_workspace',
+    {
+      description: 'Get one workspace by id with counts and meeting mode.',
+      inputSchema: {
+        workspace_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id }) => toResult(await toastitRequest({
+      method: 'GET',
+      path: `/workspaces/${workspace_id}`
     }))
   );
 
@@ -223,7 +255,7 @@ const buildServer = (bearerToken) => {
   server.registerTool(
     'invite_workspace_member',
     {
-      description: 'Invite a member to a workspace.',
+      description: 'Invite a member to a workspace by email. Workspace owners only.',
       inputSchema: {
         workspace_id: z.number().int().positive(),
         email: z.string().email()
@@ -233,6 +265,36 @@ const buildServer = (bearerToken) => {
       method: 'POST',
       path: `/workspaces/${workspace_id}/members`,
       body: { email }
+    }))
+  );
+
+  server.registerTool(
+    'promote_workspace_member',
+    {
+      description: 'Promote a workspace member to owner. Workspace owners only.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        member_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id, member_id }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/workspaces/${workspace_id}/members/${member_id}/promote`
+    }))
+  );
+
+  server.registerTool(
+    'demote_workspace_member',
+    {
+      description: 'Demote a workspace owner to regular member. Workspace owners only.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        member_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id, member_id }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/workspaces/${workspace_id}/members/${member_id}/demote`
     }))
   );
 
@@ -330,6 +392,38 @@ const buildServer = (bearerToken) => {
         ...(assignee_email !== undefined ? { assigneeEmail: assignee_email } : {}),
         ...(due_on !== undefined ? { dueOn: due_on } : {})
       }
+    }))
+  );
+
+  server.registerTool(
+    'delete_note',
+    {
+      description: 'Delete a note from a workspace. Note author or workspace owner.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        note_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id, note_id }) => toResult(await toastitRequest({
+      method: 'DELETE',
+      path: `/workspaces/${workspace_id}/notes/${note_id}`
+    }))
+  );
+
+  server.registerTool(
+    'transfer_note',
+    {
+      description: 'Transfer a note to another workspace. Source workspace owner only.',
+      inputSchema: {
+        workspace_id: z.number().int().positive(),
+        note_id: z.number().int().positive(),
+        target_workspace_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id, note_id, target_workspace_id }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/workspaces/${workspace_id}/notes/${note_id}/transfer`,
+      body: { workspaceId: target_workspace_id }
     }))
   );
 
@@ -435,6 +529,22 @@ const buildServer = (bearerToken) => {
   );
 
   server.registerTool(
+    'copy_toast',
+    {
+      description: 'Copy a toast into another workspace (or the same workspace). Creates a new pending toast.',
+      inputSchema: {
+        toast_id: z.number().int().positive(),
+        workspace_id: z.number().int().positive().optional()
+      }
+    },
+    async ({ toast_id, workspace_id }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/toasts/${toast_id}/copy`,
+      body: workspace_id !== undefined ? { workspaceId: workspace_id } : undefined
+    }))
+  );
+
+  server.registerTool(
     'transfer_toast',
     {
       description: 'Transfer a toast to another workspace.',
@@ -503,6 +613,21 @@ const buildServer = (bearerToken) => {
   );
 
   server.registerTool(
+    'delete_toast_comment',
+    {
+      description: 'Delete a comment on a toast. Comment author or workspace owner.',
+      inputSchema: {
+        toast_id: z.number().int().positive(),
+        comment_id: z.number().int().positive()
+      }
+    },
+    async ({ toast_id, comment_id }) => toResult(await toastitRequest({
+      method: 'DELETE',
+      path: `/toasts/${toast_id}/comments/${comment_id}`
+    }))
+  );
+
+  server.registerTool(
     'update_toast_comment',
     {
       description: 'Update an existing comment on a toast.',
@@ -532,6 +657,53 @@ const buildServer = (bearerToken) => {
       method: 'PUT',
       path: `/toasts/${toast_id}/boost`,
       body: { boosted }
+    }))
+  );
+
+  server.registerTool(
+    'start_meeting',
+    {
+      description: 'Start live toasting mode on a shared workspace.',
+      inputSchema: {
+        workspace_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/workspaces/${workspace_id}/meeting/start`
+    }))
+  );
+
+  server.registerTool(
+    'stop_meeting',
+    {
+      description: 'Stop live toasting mode on a shared workspace and optionally generate a session summary.',
+      inputSchema: {
+        workspace_id: z.number().int().positive()
+      }
+    },
+    async ({ workspace_id }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/workspaces/${workspace_id}/meeting/stop`
+    }))
+  );
+
+  server.registerTool(
+    'create_personal_token',
+    {
+      description: 'Create a personal access token (PAT) for API and MCP access. The plain-text token is returned once.',
+      inputSchema: {
+        name: z.string().min(1),
+        expires_at: z.string().optional()
+      }
+    },
+    async ({ name, expires_at }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: '/personal-tokens',
+      body: {
+        name,
+        ...(expires_at !== undefined ? { expiresAt: expires_at } : {})
+      }
     }))
   );
 

@@ -12,61 +12,59 @@ MCP server exposing the full Toastit public API toolset.
 
 ## Exposed tools (full scope)
 
+### Overview
+- `get_dashboard`
+- `list_my_actions`
+- `get_workspace`
+
+### Workspaces
 - `list_workspaces`
 - `create_workspace`
+- `get_workspace`
 - `update_workspace_name`
 - `delete_workspace`
 - `list_workspace_members`
 - `invite_workspace_member`
+- `promote_workspace_member`
+- `demote_workspace_member`
 - `remove_workspace_member`
+- `start_meeting`
+- `stop_meeting`
+
+### Notes
 - `list_workspace_notes`
-- `list_workspace_toasts`
 - `create_note`
-- `create_toast`
 - `update_note`
+- `delete_note`
+- `transfer_note`
+
+### Toasts
+- `list_workspace_toasts`
+- `create_toast`
 - `get_toast`
+- `copy_toast`
 - `update_toast_title`
 - `update_toast_status`
 - `transfer_toast`
 - `update_toast_assignee`
 - `update_toast_description`
 - `update_toast_due_date`
-- `list_toast_comments`
-- `create_toast_comment`
-- `update_toast_comment`
 - `set_toast_boost`
 - `set_toast_vote`
 
-These map to:
-- `GET /workspaces`
-- `POST /workspaces`
-- `PATCH /workspaces/{id}/name`
-- `DELETE /workspaces/{id}`
-- `GET /workspaces/{id}/members`
-- `POST /workspaces/{id}/members`
-- `DELETE /workspaces/{id}/members/{memberId}`
-- `GET /workspaces/{id}/notes`
-- `GET /workspaces/{id}/toasts`
-- `POST /workspaces/{id}/notes`
-- `POST /workspaces/{id}/toasts`
-- `PUT /workspaces/{id}/notes/{noteId}`
-- `GET /toasts/{id}`
-- `PATCH /toasts/{id}/title`
-- `PATCH /toasts/{id}/status`
-- `PATCH /toasts/{id}/workspace`
-- `PATCH /toasts/{id}/assignee`
-- `PATCH /toasts/{id}/description`
-- `PATCH /toasts/{id}/due-date`
-- `GET /toasts/{id}/comments`
-- `POST /toasts/{id}/comments`
-- `PATCH /toasts/{id}/comments/{commentId}`
-- `PUT /toasts/{id}/boost`
-- `PUT /toasts/{id}/vote`
+### Comments
+- `list_toast_comments`
+- `create_toast_comment`
+- `update_toast_comment`
+- `delete_toast_comment`
+
+### Auth
+- `create_personal_token`
 
 ## Requirements
 
 - Node.js 18+
-- Toastit personal access token (`toastit_<selector>_<secret>`)
+- Toastit personal access token (`toastit_<selector>_<secret>`) or OAuth access token (`tto_...`)
 
 ## Authentication
 
@@ -89,6 +87,7 @@ Environment variables for metadata (local example):
 - `stdio` mode: each user provides their PAT through `MCP_TOASTIT_PAT` in the MCP client config.
 - `http` mode: each user can send `Authorization: Bearer toastit_<pat>` on every MCP request.
 - `MCP_TOASTIT_PAT` remains supported as an optional HTTP fallback for local testing.
+- Use `create_personal_token` to issue additional PATs from an authenticated MCP session.
 
 ## Setup
 
