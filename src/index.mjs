@@ -149,7 +149,7 @@ const buildServer = (bearerToken) => {
   const toastitRequest = createToastitRequest(bearerToken);
   const server = new McpServer({
     name: 'toastit-public-api',
-    version: '0.5.0'
+    version: '0.6.0'
   });
 
   server.registerTool(
@@ -661,9 +661,71 @@ const buildServer = (bearerToken) => {
   );
 
   server.registerTool(
+    'offline_toast',
+    {
+      description: 'Mark a toast as toasted outside live toasting mode. Workspace owner on shared workspaces only. Optionally set decision notes, assignee, due date, and follow-up toasts. Manually toasted items are recapped when the next meeting starts.',
+      inputSchema: {
+        toast_id: z.number().int().positive(),
+        discussionNotes: z.string().optional(),
+        ownerId: z.number().int().positive().optional(),
+        assigneeEmail: z.string().optional(),
+        dueOn: z.string().optional(),
+        followUpItems: z.array(z.object({
+          title: z.string().optional(),
+          instruction: z.string().optional(),
+          ownerId: z.number().int().positive().optional(),
+          assigneeEmail: z.string().optional(),
+          dueOn: z.string().optional(),
+        })).optional(),
+        followUps: z.array(z.object({
+          title: z.string().optional(),
+          instruction: z.string().optional(),
+          ownerId: z.number().int().positive().optional(),
+          assigneeEmail: z.string().optional(),
+          dueOn: z.string().optional(),
+        })).optional(),
+      }
+    },
+    async ({ toast_id, ...body }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/toasts/${toast_id}/offline-toast`,
+      body,
+    }))
+  );
+
+  server.registerTool(
+    'create_toast_follow_ups',
+    {
+      description: 'Create follow-up toasts linked to a source toast outside live toasting mode. Workspace owner on shared workspaces only. Does not change the source toast status.',
+      inputSchema: {
+        toast_id: z.number().int().positive(),
+        followUpItems: z.array(z.object({
+          title: z.string().optional(),
+          instruction: z.string().optional(),
+          ownerId: z.number().int().positive().optional(),
+          assigneeEmail: z.string().optional(),
+          dueOn: z.string().optional(),
+        })).optional(),
+        followUps: z.array(z.object({
+          title: z.string().optional(),
+          instruction: z.string().optional(),
+          ownerId: z.number().int().positive().optional(),
+          assigneeEmail: z.string().optional(),
+          dueOn: z.string().optional(),
+        })).optional(),
+      }
+    },
+    async ({ toast_id, ...body }) => toResult(await toastitRequest({
+      method: 'POST',
+      path: `/toasts/${toast_id}/follow-ups`,
+      body,
+    }))
+  );
+
+  server.registerTool(
     'start_meeting',
     {
-      description: 'Start live toasting mode on a shared workspace.',
+      description: 'Start live toasting mode on a shared workspace. Returns offlineToastedRecap for toasts the owner marked done outside the previous session.',
       inputSchema: {
         workspace_id: z.number().int().positive()
       }
